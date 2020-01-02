@@ -41,16 +41,17 @@ AVRDUDE = avrdude
 ##########------------------------------------------------------##########
 
 ## The name of your project (without the .c)
-TARGET = shiftColumn
+TARGET ?= shiftColumn
 ## Or name it automatically after the enclosing directory
 # TARGET = $(lastword $(subst /, ,$(CURDIR)))
 
 # Object files: will find all .c/.h files in current directory
 #  and in LIBDIR.  If you have any other (sub-)directories with code,
 #  you can add them in to SOURCES below in the wildcard statement.
-SOURCES=$(wildcard *.c $(LIBDIR)/*.c)
-OBJECTS=$(SOURCES:.c=.o)
-HEADERS=$(SOURCES:.c=.h)
+HEADERS = $(wildcard *.h)
+SOURCES = $(HEADERS:.h=.c)
+SOURCES += $(TARGET).c
+OBJECTS = $(SOURCES:.c=.o)
 
 ## Compilation options, type man avr-gcc if you're curious.
 CPPFLAGS = -DF_CPU=$(F_CPU) -DBAUD=$(BAUD) -I.
