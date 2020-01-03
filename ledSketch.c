@@ -1,5 +1,6 @@
 #include <avr/io.h>
 #include <util/delay.h>
+#include <avr/interrupt.h>
 
 // Pins for interfacing with a SN74HC595 shift register
 // Used to select which columns in a LED matrix should be lit
@@ -22,6 +23,10 @@
 #define ROW_PORT    PORTB
 #define row_clk_up  (ROW_PORT |= ((1 << ROW_RCLK) | (1 << ROW_SRCLK)))
 #define row_clk_dn  (ROW_PORT &= ~((1 << ROW_RCLK) | (1 << ROW_SRCLK)))
+
+// Array of patterns for each row
+// Must be global to interact with interrupts
+uint8_t rows[8] = {0x80,0x00,0x00,0x00,0x00,0x00,0x00,0x00};
 
 void initRegisters() {
     // Initialize registers
@@ -51,13 +56,24 @@ void clearShiftRegisters() {
     ROW_PORT |= (1 << ROW_SRCLR);
 }
 
+void initPinChangeInterrupts() {
+    PCICR |= (1 << PCIE2);      // Interrupt for D pins
+    PCMSK2 |= (1 << PCINT16);   // PD0
+    PCMSK2 |= (1 << PCINT17);   // PD1
+    PCMSK2 |= (1 << PCINT18);   // PD2
+    PCMSK2 |= (1 << PCINT19);   // PD3
+    sei();                      // Global interrupt enable
+}
+
+ISR(PCINT2_vect) {
+}
+
 int main() {
     uint8_t i, j;
-    // Array of patterns for each row
-    uint8_t rows[8] = {0xc6,0x6c,0x54,0x44,0x44,0x44,0x44,0xc6};
 
     initRegisters();
     clearShiftRegisters();
+    initPinChangeInterrupts();
 
     // Shift in a 1 to avoid a wasted cycle -- see below
     row_clk_dn;
