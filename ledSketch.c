@@ -72,10 +72,10 @@ void clearShiftRegisters() {
     ROW_PORT &= ~(1 << ROW_SRCLR);
     col_clk_dn;
     row_clk_dn;
-    _delay_us(10);
+    _delay_us(1);
     col_clk_up;
     row_clk_up;
-    _delay_us(10);
+    _delay_us(1);
     COL_PORT |= (1 << COL_SRCLR);
     ROW_PORT |= (1 << ROW_SRCLR);
 }
@@ -154,9 +154,9 @@ int main() {
     // Shift in a 1 to avoid a wasted cycle -- see below
     row_clk_dn;
     ROW_PORT |= (1 << ROW_SER);
-    _delay_us(20);
+    _delay_us(1);
     row_clk_up;
-    _delay_us(20);
+    _delay_us(1);
 
     while (1) {
         for (i = 0; i < 8; ++i) {
