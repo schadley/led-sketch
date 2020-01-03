@@ -24,9 +24,21 @@
 #define row_clk_up  (ROW_PORT |= ((1 << ROW_RCLK) | (1 << ROW_SRCLK)))
 #define row_clk_dn  (ROW_PORT &= ~((1 << ROW_RCLK) | (1 << ROW_SRCLK)))
 
+// Pins for reading buttons
+#define BUTTON_L    PD0
+#define BUTTON_U    PD1
+#define BUTTON_D    PD2
+#define BUTTON_R    PD3
+#define BUTTON_PIN  PIND
+#define BUTTON_PORT PORTD
+
 // Array of patterns for each row
 // Must be global to interact with interrupts
 uint8_t rows[8] = {0x80,0x00,0x00,0x00,0x00,0x00,0x00,0x00};
+// Keep track of current row and column
+// Start in top left corner
+uint8_t currentRow = 0;
+uint8_t currentCol = 7;
 
 void initRegisters() {
     // Initialize registers
@@ -39,6 +51,12 @@ void initRegisters() {
     ROW_DDR |= (1 << ROW_RCLK);
     ROW_DDR |= (1 << ROW_SRCLK);
     ROW_DDR |= (1 << ROW_SRCLR);
+
+    // Enable pull-up resistors
+    BUTTON_PORT |= (1 << BUTTON_L);
+    BUTTON_PORT |= (1 << BUTTON_U);
+    BUTTON_PORT |= (1 << BUTTON_D);
+    BUTTON_PORT |= (1 << BUTTON_R);
 }
 
 void clearShiftRegisters() {
@@ -66,6 +84,35 @@ void initPinChangeInterrupts() {
 }
 
 ISR(PCINT2_vect) {
+    if (bit_is_clear(BUTTON_PIN, BUTTON_L)) {
+        // The MSB is the leftmost bit in each row
+        // Thus, a movement left should increase the column
+        if (currentCol < 7) {
+            ++currentCol;
+        }
+    }
+    else if (bit_is_clear(BUTTON_PIN, BUTTON_U)) {
+        // The first row in the array is the topmost row
+        // Thus, a  movement up should decrease the row
+        if (currentRow > 0) {
+            --currentRow;
+        }
+    }
+    else if (bit_is_clear(BUTTON_PIN, BUTTON_D)) {
+        if (currentRow < 7) {
+            ++currentRow;
+        }
+    }
+    else if (bit_is_clear(BUTTON_PIN, BUTTON_R)) {
+        if (currentCol > 0) {
+            --currentCol;
+        }
+    }
+    else {
+        return;
+    }
+    // Update the LED pattern
+    rows[currentRow] |= (1 << currentCol);
 }
 
 int main() {
