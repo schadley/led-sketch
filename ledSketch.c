@@ -40,6 +40,12 @@ uint8_t rows[8] = {0x80,0x00,0x00,0x00,0x00,0x00,0x00,0x00};
 uint8_t currentRow = 0;
 uint8_t currentCol = 7;
 
+// Previous states of buttons
+uint8_t prevL = (1 << BUTTON_L);
+uint8_t prevU = (1 << BUTTON_U);
+uint8_t prevD = (1 << BUTTON_D);
+uint8_t prevR = (1 << BUTTON_R);
+
 void initRegisters() {
     // Initialize registers
     COL_DDR |= (1 << COL_SER);
@@ -83,27 +89,50 @@ void initPinChangeInterrupts() {
     sei();                      // Global interrupt enable
 }
 
+// Check whether a button has been pressed
+// Use debounce to avoid double presses
+uint8_t checkPress(volatile uint8_t *reg, uint8_t bit, uint8_t *prev) {
+    uint8_t current;
+
+    // Check whether the button has changed position
+    if ((*reg & (1 << bit)) != *prev) {
+        // Check the value of the button after a
+        // short delay to debounce the input
+        _delay_ms(5);
+        current = *reg & (1 << bit);
+
+        // If the change in position is confirmed,
+        // update the previous position and
+        // return whether the button has been pressed
+        if (current != *prev) {
+            *prev = current;
+            return (*prev == 0);
+        }
+    }
+    return 0;
+}
+
 ISR(PCINT2_vect) {
-    if (bit_is_clear(BUTTON_PIN, BUTTON_L)) {
+    if (checkPress(&BUTTON_PIN, BUTTON_L, &prevL)) {
         // The MSB is the leftmost bit in each row
         // Thus, a movement left should increase the column
         if (currentCol < 7) {
             ++currentCol;
         }
     }
-    else if (bit_is_clear(BUTTON_PIN, BUTTON_U)) {
+    else if (checkPress(&BUTTON_PIN, BUTTON_U, &prevU)) {
         // The first row in the array is the topmost row
         // Thus, a  movement up should decrease the row
         if (currentRow > 0) {
             --currentRow;
         }
     }
-    else if (bit_is_clear(BUTTON_PIN, BUTTON_D)) {
+    else if (checkPress(&BUTTON_PIN, BUTTON_D, &prevD)) {
         if (currentRow < 7) {
             ++currentRow;
         }
     }
-    else if (bit_is_clear(BUTTON_PIN, BUTTON_R)) {
+    else if (checkPress(&BUTTON_PIN, BUTTON_R, &prevR)) {
         if (currentCol > 0) {
             --currentCol;
         }
