@@ -32,6 +32,9 @@
 #define BUTTON_PIN  PIND
 #define BUTTON_PORT PORTD
 
+#define SET_BIT(NUM, BIT)   (NUM |= (1 << BIT))
+#define CLEAR_BIT(NUM, BIT) (NUM &= ~(1 << BIT))
+
 // Array of patterns for each row
 // Must be global to interact with interrupts
 uint8_t rows[8] = {0x80,0x00,0x00,0x00,0x00,0x00,0x00,0x00};
@@ -48,44 +51,44 @@ uint8_t prevR = (1 << BUTTON_R);
 
 void initRegisters() {
     // Initialize registers
-    COL_DDR |= (1 << COL_SER);
-    COL_DDR |= (1 << COL_RCLK);
-    COL_DDR |= (1 << COL_SRCLK);
-    COL_DDR |= (1 << COL_SRCLR);
+    SET_BIT(COL_DDR, COL_SER);
+    SET_BIT(COL_DDR, COL_RCLK);
+    SET_BIT(COL_DDR, COL_SRCLK);
+    SET_BIT(COL_DDR, COL_SRCLR);
 
-    ROW_DDR |= (1 << ROW_SER);
-    ROW_DDR |= (1 << ROW_RCLK);
-    ROW_DDR |= (1 << ROW_SRCLK);
-    ROW_DDR |= (1 << ROW_SRCLR);
+    SET_BIT(ROW_DDR, ROW_SER);
+    SET_BIT(ROW_DDR, ROW_RCLK);
+    SET_BIT(ROW_DDR, ROW_SRCLK);
+    SET_BIT(ROW_DDR, ROW_SRCLR);
 
     // Enable pull-up resistors
-    BUTTON_PORT |= (1 << BUTTON_L);
-    BUTTON_PORT |= (1 << BUTTON_U);
-    BUTTON_PORT |= (1 << BUTTON_D);
-    BUTTON_PORT |= (1 << BUTTON_R);
+    SET_BIT(BUTTON_PORT, BUTTON_L);
+    SET_BIT(BUTTON_PORT, BUTTON_U);
+    SET_BIT(BUTTON_PORT, BUTTON_D);
+    SET_BIT(BUTTON_PORT, BUTTON_R);
 }
 
 void clearShiftRegisters() {
     // Clear the shift registers
     // Clear inputs are active low
-    COL_PORT &= ~(1 << COL_SRCLR);
-    ROW_PORT &= ~(1 << ROW_SRCLR);
+    CLEAR_BIT(COL_PORT, COL_SRCLR);
+    CLEAR_BIT(ROW_PORT, ROW_SRCLR);
     col_clk_dn;
     row_clk_dn;
     _delay_us(1);
     col_clk_up;
     row_clk_up;
     _delay_us(1);
-    COL_PORT |= (1 << COL_SRCLR);
-    ROW_PORT |= (1 << ROW_SRCLR);
+    SET_BIT(COL_PORT, COL_SRCLR);
+    SET_BIT(ROW_PORT, ROW_SRCLR);
 }
 
 void initPinChangeInterrupts() {
-    PCICR |= (1 << PCIE2);      // Interrupt for D pins
-    PCMSK2 |= (1 << PCINT16);   // PD0
-    PCMSK2 |= (1 << PCINT17);   // PD1
-    PCMSK2 |= (1 << PCINT18);   // PD2
-    PCMSK2 |= (1 << PCINT19);   // PD3
+    SET_BIT(PCICR, PCIE2);      // Interrupt for D pins
+    SET_BIT(PCMSK2, PCINT16);   // PD0
+    SET_BIT(PCMSK2, PCINT17);   // PD1
+    SET_BIT(PCMSK2, PCINT18);   // PD2
+    SET_BIT(PCMSK2, PCINT19);   // PD3
     sei();                      // Global interrupt enable
 }
 
@@ -141,7 +144,7 @@ ISR(PCINT2_vect) {
         return;
     }
     // Update the LED pattern
-    rows[currentRow] |= (1 << currentCol);
+    SET_BIT(rows[currentRow], currentCol);
 }
 
 int main() {
@@ -163,16 +166,16 @@ int main() {
             // Set clock low for the row shift reg
             // and for the output register of the column shift reg
             row_clk_dn;
-            COL_PORT &= ~(1 << COL_RCLK);
+            CLEAR_BIT(COL_PORT, COL_RCLK);
 
             // Update the register for the row
             // The output reg is always 1 cycle behind the internal shift reg
             // Shift in 1 on the last cycle so a 1 appears on the first cycle
             if (i == 7) {
-                ROW_PORT |= (1 << ROW_SER);
+                SET_BIT(ROW_PORT, ROW_SER);
             }
             else {
-                ROW_PORT &= ~(1 << ROW_SER);
+                CLEAR_BIT(ROW_PORT, ROW_SER);
             }
 
             // Update the internal shift register for the columns
@@ -180,21 +183,21 @@ int main() {
             for (j = 0; j < 8; ++j) {
                 // Set serial output high if
                 // the bit in the row pattern is a 1
-                if (rows[i] & (1 << j)) {
-                    COL_PORT |= (1 << COL_SER);
+                if (bit_is_set(rows[i], j)) {
+                    SET_BIT(COL_PORT, COL_SER);
                 }
                 else {
-                    COL_PORT &= ~(1 << COL_SER);
+                    CLEAR_BIT(COL_PORT, COL_SER);
                 }
 
-                COL_PORT &= ~(1 << COL_SRCLK);
+                CLEAR_BIT(COL_PORT, COL_SRCLK);
                 _delay_us(1);
-                COL_PORT |= (1 << COL_SRCLK);
+                SET_BIT(COL_PORT, COL_SRCLK);
                 _delay_us(1);
             }
 
             row_clk_up;
-            COL_PORT |= (1 << COL_RCLK);
+            SET_BIT(COL_PORT, COL_RCLK);
             _delay_us(20);
         }
     }
