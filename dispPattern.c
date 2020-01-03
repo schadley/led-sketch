@@ -23,11 +23,7 @@
 #define row_clk_up  (ROW_PORT |= ((1 << ROW_RCLK) | (1 << ROW_SRCLK)))
 #define row_clk_dn  (ROW_PORT &= ~((1 << ROW_RCLK) | (1 << ROW_SRCLK)))
 
-int main() {
-    uint8_t i, j;
-    // Array of patterns for each row
-    uint8_t rows[8] = {0xc6,0x6c,0x54,0x44,0x44,0x44,0x44,0xc6};
-
+void initRegisters() {
     // Initialize registers
     COL_DDR |= (1 << COL_SER);
     COL_DDR |= (1 << COL_RCLK);
@@ -38,12 +34,14 @@ int main() {
     ROW_DDR |= (1 << ROW_RCLK);
     ROW_DDR |= (1 << ROW_SRCLK);
     ROW_DDR |= (1 << ROW_SRCLR);
+}
 
+void clearShiftRegisters() {
     // Clear the shift registers
     // Clear inputs are active low
     COL_PORT &= ~(1 << COL_SRCLR);
-    col_clk_dn;
     ROW_PORT &= ~(1 << ROW_SRCLR);
+    col_clk_dn;
     row_clk_dn;
     _delay_us(10);
     col_clk_up;
@@ -51,6 +49,15 @@ int main() {
     _delay_us(10);
     COL_PORT |= (1 << COL_SRCLR);
     ROW_PORT |= (1 << ROW_SRCLR);
+}
+
+int main() {
+    uint8_t i, j;
+    // Array of patterns for each row
+    uint8_t rows[8] = {0xc6,0x6c,0x54,0x44,0x44,0x44,0x44,0xc6};
+
+    initRegisters();
+    clearShiftRegisters();
 
     // Shift in a 1 to avoid a wasted cycle -- see below
     row_clk_dn;
