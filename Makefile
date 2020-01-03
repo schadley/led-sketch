@@ -55,7 +55,7 @@ OBJECTS = $(SOURCES:.c=.o)
 
 ## Compilation options, type man avr-gcc if you're curious.
 CPPFLAGS = -DF_CPU=$(F_CPU) -DBAUD=$(BAUD) -I.
-CFLAGS = -Os -g -std=gnu99 -Wall
+CFLAGS = -Os -g -std=gnu99 -Wall -Wpedantic
 ## Use short (8-bit) data types 
 CFLAGS += -funsigned-char -funsigned-bitfields -fpack-struct -fshort-enums 
 ## Splits up object files per function
@@ -87,7 +87,7 @@ $(TARGET).elf: $(OBJECTS)
 	$(OBJDUMP) -S $< > $@
 
 ## These targets don't have files named after them
-.PHONY: all disassemble disasm eeprom size clean squeaky_clean flash fuses
+.PHONY: all disassemble disasm eeprom size clean flash fuses
 
 all: $(TARGET).hex 
 
@@ -110,12 +110,6 @@ size:  $(TARGET).elf
 	$(AVRSIZE) -C --mcu=$(MCU) $(TARGET).elf
 
 clean:
-	rm -f $(TARGET).elf $(TARGET).hex $(TARGET).obj \
-	$(TARGET).o $(TARGET).d $(TARGET).eep $(TARGET).lst \
-	$(TARGET).lss $(TARGET).sym $(TARGET).map $(TARGET)~ \
-	$(TARGET).eeprom
-
-squeaky_clean:
 	rm -f *.elf *.hex *.obj *.o *.d *.eep *.lst *.lss *.sym *.map *~ *.eeprom
 
 ##########------------------------------------------------------##########
