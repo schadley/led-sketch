@@ -64,23 +64,31 @@ void initRegisters() {
     SET_BIT(BUTTON_PORT, BUTTON_R);
 }
 
-void clearShiftRegisters() {
-    // Clear the shift registers
+void clearColRegister() {
+    // Clear the column shift register
     // Clear inputs are active low
     CLEAR_BIT(COL_PORT, COL_SRCLR);
-    CLEAR_BIT(ROW_PORT, ROW_SRCLR);
     CLEAR_BIT(COL_PORT, COL_SRCLK);
-    CLEAR_BIT(ROW_PORT, ROW_SRCLK);
     CLEAR_BIT(COL_PORT, COL_RCLK);
-    CLEAR_BIT(ROW_PORT, ROW_RCLK);
     _delay_us(1);
     SET_BIT(COL_PORT, COL_SRCLK);
-    SET_BIT(ROW_PORT, ROW_SRCLK);
     _delay_us(1);
     SET_BIT(COL_PORT, COL_RCLK);
-    SET_BIT(ROW_PORT, ROW_RCLK);
     _delay_us(1);
     SET_BIT(COL_PORT, COL_SRCLR);
+}
+
+void clearRowRegister() {
+    // Clear the row shift register
+    // Clear inputs are active low
+    CLEAR_BIT(ROW_PORT, ROW_SRCLR);
+    CLEAR_BIT(ROW_PORT, ROW_SRCLK);
+    CLEAR_BIT(ROW_PORT, ROW_RCLK);
+    _delay_us(1);
+    SET_BIT(ROW_PORT, ROW_SRCLK);
+    _delay_us(1);
+    SET_BIT(ROW_PORT, ROW_RCLK);
+    _delay_us(1);
     SET_BIT(ROW_PORT, ROW_SRCLR);
 }
 
@@ -152,7 +160,8 @@ int main() {
     uint8_t i, j;
 
     initRegisters();
-    clearShiftRegisters();
+    clearColRegister();
+    clearRowRegister();
     initPinChangeInterrupts();
 
     while (1) {
