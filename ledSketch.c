@@ -110,6 +110,9 @@ uint8_t checkPress(volatile uint8_t *reg, uint8_t bit, uint8_t *prev) {
     if ((*reg & (1 << bit)) != *prev) {
         // Check the value of the button after a
         // short delay to debounce the input
+        // Clear the row register before the delay
+        // to avoid one row being displayed too long
+        clearRowRegister();
         _delay_ms(5);
         current = *reg & (1 << bit);
 
