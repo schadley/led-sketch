@@ -10,8 +10,6 @@
 #define COL_SRCLR   PC0
 #define COL_DDR     DDRC
 #define COL_PORT    PORTC
-#define col_clk_up  (COL_PORT |= ((1 << COL_RCLK) | (1 << COL_SRCLK)))
-#define col_clk_dn  (COL_PORT &= ~((1 << COL_RCLK) | (1 << COL_SRCLK)))
 
 // Pins for interfacing with a TPIC6B596 shift register
 // Used to select which rows in a LED matrix should be lit
@@ -21,8 +19,6 @@
 #define ROW_SRCLR   PB0
 #define ROW_DDR     DDRB
 #define ROW_PORT    PORTB
-#define row_clk_up  (ROW_PORT |= ((1 << ROW_RCLK) | (1 << ROW_SRCLK)))
-#define row_clk_dn  (ROW_PORT &= ~((1 << ROW_RCLK) | (1 << ROW_SRCLK)))
 
 // Pins for reading buttons
 #define BUTTON_L    PD0
@@ -73,11 +69,16 @@ void clearShiftRegisters() {
     // Clear inputs are active low
     CLEAR_BIT(COL_PORT, COL_SRCLR);
     CLEAR_BIT(ROW_PORT, ROW_SRCLR);
-    col_clk_dn;
-    row_clk_dn;
+    CLEAR_BIT(COL_PORT, COL_SRCLK);
+    CLEAR_BIT(ROW_PORT, ROW_SRCLK);
+    CLEAR_BIT(COL_PORT, COL_RCLK);
+    CLEAR_BIT(ROW_PORT, ROW_RCLK);
     _delay_us(1);
-    col_clk_up;
-    row_clk_up;
+    SET_BIT(COL_PORT, COL_SRCLK);
+    SET_BIT(ROW_PORT, ROW_SRCLK);
+    _delay_us(1);
+    SET_BIT(COL_PORT, COL_RCLK);
+    SET_BIT(ROW_PORT, ROW_RCLK);
     _delay_us(1);
     SET_BIT(COL_PORT, COL_SRCLR);
     SET_BIT(ROW_PORT, ROW_SRCLR);
@@ -154,29 +155,26 @@ int main() {
     clearShiftRegisters();
     initPinChangeInterrupts();
 
-    // Shift in a 1 to avoid a wasted cycle -- see below
-    row_clk_dn;
-    ROW_PORT |= (1 << ROW_SER);
-    _delay_us(1);
-    row_clk_up;
-    _delay_us(1);
-
     while (1) {
         for (i = 0; i < 8; ++i) {
-            // Set clock low for the row shift reg
-            // and for the output register of the column shift reg
-            row_clk_dn;
+            // Set clock low for the output registers
+            CLEAR_BIT(ROW_PORT, ROW_RCLK);
             CLEAR_BIT(COL_PORT, COL_RCLK);
 
-            // Update the register for the row
-            // The output reg is always 1 cycle behind the internal shift reg
-            // Shift in 1 on the last cycle so a 1 appears on the first cycle
-            if (i == 7) {
+            // Update the internal shift register for the row
+            // Shift in 1 on the first cycle and a 0 every other cycle
+            // SRCLK and RCLK are separated so each value
+            // appears on the same cycle it is shifted in
+            if (i == 0) {
                 SET_BIT(ROW_PORT, ROW_SER);
             }
             else {
                 CLEAR_BIT(ROW_PORT, ROW_SER);
             }
+            CLEAR_BIT(ROW_PORT, ROW_SRCLK);
+            _delay_us(1);
+            SET_BIT(ROW_PORT, ROW_SRCLK);
+            _delay_us(1);
 
             // Update the internal shift register for the columns
             // Output will not change until a pulse on RCLK
@@ -196,8 +194,9 @@ int main() {
                 _delay_us(1);
             }
 
-            row_clk_up;
+            // Set clock high for the output registers
             SET_BIT(COL_PORT, COL_RCLK);
+            SET_BIT(ROW_PORT, ROW_RCLK);
             _delay_us(20);
         }
     }
