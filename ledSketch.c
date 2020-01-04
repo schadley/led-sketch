@@ -154,16 +154,21 @@ void displayPattern() {
 // Check whether a button has been pressed
 // Use debounce to avoid double presses
 uint8_t checkPress(volatile uint8_t *reg, uint8_t bit, uint8_t *prev) {
-    uint8_t current;
+    uint8_t current, i;
 
     // Check whether the button has changed position
     if ((*reg & (1 << bit)) != *prev) {
         // Check the value of the button after a
         // short delay to debounce the input
-        // Clear the row register before the delay
-        // to avoid one row being displayed too long
+        // Clear the row register before the delay in case
+        // an interrupt occured during a display loop
         clearRowRegister();
-        _delay_ms(5);
+        // Display the current pattern 125 times
+        // for a delay of 16 * 320 us ~= 5 ms
+        for (i = 0; i < 16; ++i) {
+            displayPattern();
+        }
+
         current = *reg & (1 << bit);
 
         // If the change in position is confirmed,
