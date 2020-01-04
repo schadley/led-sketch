@@ -101,6 +101,56 @@ void initPinChangeInterrupts() {
     sei();                      // Global interrupt enable
 }
 
+// Display a pattern stored in rows[] a specified number of times
+// Each loop takes approx 320 ns.
+void displayPattern() {
+    uint8_t i, j;
+
+    for (i = 0; i < 8; ++i) {
+        // Set clock low for the output registers
+        CLEAR_BIT(ROW_PORT, ROW_RCLK);
+        CLEAR_BIT(COL_PORT, COL_RCLK);
+
+        // Update the internal shift register for the row
+        // Shift in 1 on the first cycle and a 0 every other cycle
+        // SRCLK and RCLK are separated so each value
+        // appears on the same cycle it is shifted in
+        if (i == 0) {
+            SET_BIT(ROW_PORT, ROW_SER);
+        }
+        else {
+            CLEAR_BIT(ROW_PORT, ROW_SER);
+        }
+        CLEAR_BIT(ROW_PORT, ROW_SRCLK);
+        _delay_us(1);
+        SET_BIT(ROW_PORT, ROW_SRCLK);
+        _delay_us(1);
+
+        // Update the internal shift register for the columns
+        // Output will not change until a pulse on RCLK
+        for (j = 0; j < 8; ++j) {
+            // Set serial output high if
+            // the bit in the row pattern is a 1
+            if (bit_is_set(rows[i], j)) {
+                SET_BIT(COL_PORT, COL_SER);
+            }
+            else {
+                CLEAR_BIT(COL_PORT, COL_SER);
+            }
+
+            CLEAR_BIT(COL_PORT, COL_SRCLK);
+            _delay_us(1);
+            SET_BIT(COL_PORT, COL_SRCLK);
+            _delay_us(1);
+        }
+
+        // Set clock high for the output registers
+        SET_BIT(COL_PORT, COL_RCLK);
+        SET_BIT(ROW_PORT, ROW_RCLK);
+        _delay_us(20);
+    }
+}
+
 // Check whether a button has been pressed
 // Use debounce to avoid double presses
 uint8_t checkPress(volatile uint8_t *reg, uint8_t bit, uint8_t *prev) {
@@ -160,56 +210,12 @@ ISR(PCINT2_vect) {
 }
 
 int main() {
-    uint8_t i, j;
-
     initRegisters();
     clearColRegister();
     clearRowRegister();
     initPinChangeInterrupts();
 
     while (1) {
-        for (i = 0; i < 8; ++i) {
-            // Set clock low for the output registers
-            CLEAR_BIT(ROW_PORT, ROW_RCLK);
-            CLEAR_BIT(COL_PORT, COL_RCLK);
-
-            // Update the internal shift register for the row
-            // Shift in 1 on the first cycle and a 0 every other cycle
-            // SRCLK and RCLK are separated so each value
-            // appears on the same cycle it is shifted in
-            if (i == 0) {
-                SET_BIT(ROW_PORT, ROW_SER);
-            }
-            else {
-                CLEAR_BIT(ROW_PORT, ROW_SER);
-            }
-            CLEAR_BIT(ROW_PORT, ROW_SRCLK);
-            _delay_us(1);
-            SET_BIT(ROW_PORT, ROW_SRCLK);
-            _delay_us(1);
-
-            // Update the internal shift register for the columns
-            // Output will not change until a pulse on RCLK
-            for (j = 0; j < 8; ++j) {
-                // Set serial output high if
-                // the bit in the row pattern is a 1
-                if (bit_is_set(rows[i], j)) {
-                    SET_BIT(COL_PORT, COL_SER);
-                }
-                else {
-                    CLEAR_BIT(COL_PORT, COL_SER);
-                }
-
-                CLEAR_BIT(COL_PORT, COL_SRCLK);
-                _delay_us(1);
-                SET_BIT(COL_PORT, COL_SRCLK);
-                _delay_us(1);
-            }
-
-            // Set clock high for the output registers
-            SET_BIT(COL_PORT, COL_RCLK);
-            SET_BIT(ROW_PORT, ROW_RCLK);
-            _delay_us(20);
-        }
+        displayPattern();
     }
 }
