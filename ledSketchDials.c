@@ -39,6 +39,15 @@ void initRegisters() {
     SET_BIT(ROW_DDR, ROW_SRCLR);
 }
 
+void initADC4and5() {
+    SET_BIT(ADMUX, REFS0);  // Use AVCC as reference
+    // ADC clock division factor of 8
+    SET_BIT(ADCSRA, ADPS1);
+    SET_BIT(ADCSRA, ADPS0);
+    SET_BIT(ADCSRA, ADEN);  // Enable ADC
+    SET_BIT(ADMUX, MUX2);   // Set mux to ADC4
+}
+
 void clearColRegister() {
     // Clear the column shift register
     // Clear inputs are active low
@@ -128,6 +137,7 @@ void displayPattern() {
 
 int main() {
     initRegisters();
+    initADC4and5();
     clearColRegister();
     clearRowRegister();
 
