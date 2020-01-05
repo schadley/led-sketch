@@ -135,9 +135,24 @@ void displayPattern() {
     }
 }
 
+uint8_t readADC4() {
+    CLEAR_BIT(ADMUX, MUX0); // Set mux to ADC4 (up/down)
+    SET_BIT(ADCSRA, ADSC); // Start ADC conversion
+    loop_until_bit_is_clear(ADCSRA, ADSC);
+    // ADC value is 10 bits, use top 3 bits
+    return (ADC >> 7);
+}
+
+uint8_t readADC5() {
+    SET_BIT(ADMUX, MUX0); // Set mux to ADC5 (left/right)
+    SET_BIT(ADCSRA, ADSC); // Start ADC conversion
+    loop_until_bit_is_clear(ADCSRA, ADSC);
+    // ADC value is 10 bits, use top 3 bits
+    return (ADC >> 7);
+}
+
 int main() {
     uint8_t currentRow, currentCol;
-    uint16_t adcValue;
 
     initRegisters();
     initADC4and5();
@@ -148,19 +163,8 @@ int main() {
         // Don't display anything while ADC is running
         clearColRegister();
 
-        CLEAR_BIT(ADMUX, MUX0); // Set mux to ADC4 (up/down)
-        SET_BIT(ADCSRA, ADSC); // Start ADC conversion
-        loop_until_bit_is_clear(ADCSRA, ADSC);
-        adcValue = ADC;
-        // ADC value is 10 bits, use top 3 bits
-        currentRow = (adcValue >> 7);
-
-        SET_BIT(ADMUX, MUX0); // Set mux to ADC5 (left/right)
-        SET_BIT(ADCSRA, ADSC); // Start ADC conversion
-        loop_until_bit_is_clear(ADCSRA, ADSC);
-        adcValue = ADC;
-        // ADC value is 10 bits, use top 3 bits
-        currentCol = (adcValue >> 7);
+        currentRow = readADC4();
+        currentCol = readADC5();
 
         SET_BIT(rows[currentRow], currentCol);
 
