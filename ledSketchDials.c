@@ -169,6 +169,7 @@ ISR(TIMER1_OVF_vect) {
 }
 
 int main() {
+    uint8_t prevRow, prevCol;
 
     initRegisters();
     initADC4and5();
@@ -176,12 +177,23 @@ int main() {
     clearColRegister();
     clearRowRegister();
 
+    prevRow = readADC4();
+    prevCol = readADC5();
+
     while (1) {
         // Don't display anything while ADC is running
         clearColRegister();
 
         currentRow = readADC4();
         currentCol = readADC5();
+
+        // If the dials move to a new position,
+        // make sure the previous position is lit
+        if (prevRow != currentRow || prevCol != currentCol) {
+            SET_BIT(rows[prevRow], prevCol);
+            prevRow = currentRow;
+            prevCol = currentCol;
+        }
 
         displayPattern();
     }
