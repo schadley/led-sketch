@@ -107,9 +107,8 @@ void displayPattern() {
     uint8_t i, j;
 
     for (i = 0; i < 8; ++i) {
-        // Set clock low for the output registers
+        // Set clock low for the row output register
         CLEAR_BIT(ROW_PORT, ROW_RCLK);
-        CLEAR_BIT(COL_PORT, COL_RCLK);
 
         // Update the internal shift register for the row
         // Shift in 1 on the first cycle and a 0 every other cycle
@@ -125,6 +124,13 @@ void displayPattern() {
         _delay_us(1);
         SET_BIT(ROW_PORT, ROW_SRCLK);
         _delay_us(1);
+
+        // Clear the column register before editing its value
+        // to avoid the wrong LEDs being lit
+        clearColRegister();
+
+        // Set clock low for the column output register
+        CLEAR_BIT(COL_PORT, COL_RCLK);
 
         // Update the internal shift register for the columns
         // Output will not change until a pulse on RCLK
@@ -145,8 +151,11 @@ void displayPattern() {
         }
 
         // Set clock high for the output registers
-        SET_BIT(COL_PORT, COL_RCLK);
         SET_BIT(ROW_PORT, ROW_RCLK);
+        // Only update the output register for the column
+        // after the new row has been updated
+        // to avoid the wrong LEDs being lit
+        SET_BIT(COL_PORT, COL_RCLK);
         _delay_us(20);
     }
 }
