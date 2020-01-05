@@ -136,12 +136,34 @@ void displayPattern() {
 }
 
 int main() {
+    uint8_t currentRow, currentCol;
+    uint16_t adcValue;
+
     initRegisters();
     initADC4and5();
     clearColRegister();
     clearRowRegister();
 
     while (1) {
+        // Don't display anything while ADC is running
+        clearColRegister();
+
+        CLEAR_BIT(ADMUX, MUX0); // Set mux to ADC4 (up/down)
+        SET_BIT(ADCSRA, ADSC); // Start ADC conversion
+        loop_until_bit_is_clear(ADCSRA, ADSC);
+        adcValue = ADC;
+        // ADC value is 10 bits, use top 3 bits
+        currentRow = (adcValue >> 7);
+
+        SET_BIT(ADMUX, MUX0); // Set mux to ADC5 (left/right)
+        SET_BIT(ADCSRA, ADSC); // Start ADC conversion
+        loop_until_bit_is_clear(ADCSRA, ADSC);
+        adcValue = ADC;
+        // ADC value is 10 bits, use top 3 bits
+        currentCol = (adcValue >> 7);
+
+        SET_BIT(rows[currentRow], currentCol);
+
         displayPattern();
     }
 }
