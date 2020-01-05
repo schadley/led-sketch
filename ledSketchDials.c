@@ -1,5 +1,6 @@
 #include <avr/io.h>
 #include <util/delay.h>
+#include <avr/interrupt.h>
 
 // Pins for interfacing with a SN74HC595 shift register
 // Used to select which columns in a LED matrix should be lit
@@ -21,10 +22,15 @@
 
 #define SET_BIT(NUM, BIT)   (NUM |= (1 << BIT))
 #define CLEAR_BIT(NUM, BIT) (NUM &= ~(1 << BIT))
+#define TOGGLE_BIT(NUM, BIT)    (NUM ^= (1 << BIT))
 
 // Array of patterns for each row
 // Must be global to interact with interrupts
 uint8_t rows[8] = {0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00};
+
+// Current position of the dials
+// Must be global to interact with interrupts
+uint8_t currentRow, currentCol;
 
 void initRegisters() {
     // Initialize registers
@@ -46,6 +52,13 @@ void initADC4and5() {
     SET_BIT(ADCSRA, ADPS0);
     SET_BIT(ADCSRA, ADEN);  // Enable ADC
     SET_BIT(ADMUX, MUX2);   // Set mux to ADC4
+}
+
+void initTimerInterrupt() {
+    // Use 16-bit timer1 in normal mode, no need to set mode flags
+    SET_BIT(TCCR1B, CS01); // Enable timer with prescaling by 8
+    SET_BIT(TIMSK1, TOIE1); // Enable interrupts for timer1
+    sei();
 }
 
 void clearColRegister() {
@@ -151,11 +164,15 @@ uint8_t readADC5() {
     return (ADC >> 7);
 }
 
+ISR(TIMER1_OVF_vect) {
+    TOGGLE_BIT(rows[currentRow], currentCol);
+}
+
 int main() {
-    uint8_t currentRow, currentCol;
 
     initRegisters();
     initADC4and5();
+    initTimerInterrupt();
     clearColRegister();
     clearRowRegister();
 
@@ -165,8 +182,6 @@ int main() {
 
         currentRow = readADC4();
         currentCol = readADC5();
-
-        SET_BIT(rows[currentRow], currentCol);
 
         displayPattern();
     }
