@@ -193,6 +193,10 @@ int main() {
             SET_BIT(rows[prevRow], prevCol);
             prevRow = currentRow;
             prevCol = currentCol;
+            // Also, light the new position and reset the timer
+            SET_BIT(rows[currentRow], currentCol);
+            TCNT1H = 0;
+            TCNT1L = 0;
         }
 
         displayPattern();
